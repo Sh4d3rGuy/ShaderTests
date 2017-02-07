@@ -4,116 +4,108 @@
 
 	<BODY>
 		<canvas id="glscreen" width="500" height="500" style="width:500; height:500"></canvas>
-	
+
 <script id="vs" type="x-shader/x-vertex">
-precision mediump float;
-attribute vec2 position;
-void main() {
-	gl_Position = vec4(position, 0.0, 1.0);
-}
+   precision mediump float;
+   attribute vec2 position;
+   void main() {
+	     gl_Position = vec4(position, 0.0, 1.0);
+     }
 </script>
 
-		
-		
+
+
 <script id="fs" type="x-shader/x-fragment">
-// Author: 
-// Title: 
+   // Author:
+   // Title:
 
-#ifdef GL_ES
-precision mediump float;
-#endif
+   #ifdef GL_ES
+   precision mediump float;
+   #endif
 
-#define PI 3.14159265359
-#define TWO_PI 6.28318530718
+   #define PI 3.14159265359
+   #define TWO_PI 6.28318530718
 
-uniform vec2 u_resolution;
-uniform vec2 u_mouse;
-uniform float u_time;
+   uniform vec2 u_resolution;
+   uniform vec2 u_mouse;
+   uniform vec3 u_time_hms;
 
-float circle(in vec2 _st, in vec2 center, in float _radius, in float thick){
-    vec2 dist = _st - center;
-    _radius += thick * 0.5;
-    float smoothness = 0.005;
-    
-	float result = 1.-smoothstep(_radius-(_radius * smoothness),
-                         _radius+(_radius * smoothness),
-                         dot(dist,dist) * 4.0);
-    _radius -= thick;
-    result *= 1.-smoothstep(_radius+(_radius * smoothness), _radius-(_radius * smoothness), dot(dist,dist)*4.0);
-    
-    return result;
-}
+   uniform vec3 u_color_h;
+   uniform vec3 u_color_m;
+   uniform vec3 u_color_s;
+   uniform vec3 u_color_border;
 
-vec2 tickPos(in float time, in float base, in float radius) {
-    float fac = time / base;
-    fac *= TWO_PI;
-    
-    vec2 result = vec2(sin(fac), cos(fac));
-    result *= -radius;
-    return result;
-}
 
-float drawLine(in vec2 coord, in vec2 start, in vec2 end, in float thick) {
-    
-    float result = 0.0;
-    
-    vec2 tv = vec2(thick * 0.5);
-    
-    vec2 endMin = end - tv;
-    vec2 endMax = end + tv;
-    vec2 startMin = start - tv;
-    vec2 startMax = start + tv;
-    
-    //vec2 result1 = step(endMin, coord);
-    vec2 result1 = step(endMin, coord);
-    vec2 result2 = step(coord, endMax);
-    vec2 result3 = step(startMin, coord);
-    vec2 result4 = step(coord, startMax);
-    
-    result = result1.x * result1.y * result2.x * result2.y;
-    result += result3.x * result3.y * result4.x * result4.y;
-    
-    //result = result1.x * result1.y;
-    //result = dot(result1, result1);
-    //result += dot(result3, result4);
-    
-    return result;
-    
-}
-void main() {
-    vec2 st = gl_FragCoord.xy/u_resolution.xy;
-    vec2 center = vec2(0.5);
-    
-    vec3 red = vec3(0.5, 0.0, 0.0);
-    vec3 black = vec3(0.0);
-    vec3 white = vec3(1.0);
+   float circle(in vec2 _st, in vec2 center, in float _radius, in float thick){
+       vec2 dist = _st - center;
+       _radius += thick * 0.5;
+       float smoothness = 0.005;
 
-    vec3 color = black;
+   	float result = 1.-smoothstep(_radius-(_radius * smoothness),
+                            _radius+(_radius * smoothness),
+                            dot(dist,dist) * 4.0);
+       _radius -= thick;
+       result *= 1.-smoothstep(_radius+(_radius * smoothness), _radius-(_radius * smoothness), dot(dist,dist)*4.0);
 
-    color = mix(color, white, circle(st, center, 0.9, 0.03));
+       return result;
+   }
 
-    float hour = 13.0;
-    float minute = 37.0;
-    float sec = floor(u_time);
-    
-    vec2 hourPos = tickPos(hour, 12.0, 0.25);
-    vec2 minPos = tickPos(minute, 60.0, 0.38);
-    vec2 secPos = tickPos(sec, 60.0, 0.41);
-    
-    
-    color = mix(color, white, drawLine(st, center, center - hourPos, 0.1));
-    color = mix(color, white, drawLine(st, center, center - minPos, 0.05));
-    color = mix(color, red, drawLine(st, center, center - secPos, 0.03));
-    
-    gl_FragColor = vec4(color,1.0);
-}
+   vec2 tickPos(in float time, in float base, in float radius) {
+       float fac = time / base;
+       fac *= TWO_PI;
+
+       vec2 result = vec2(sin(fac), cos(fac));
+       result *= -radius;
+       return result;
+   }
+
+   float drawLine(vec2 uv, vec2 p1, vec2 p2, float thick) {
+
+     float a = abs(distance(p1, uv));
+     float b = abs(distance(p2, uv));
+     float c = abs(distance(p1, p2));
+
+     if ( a >= c || b >=  c ) return 0.0;
+
+     float p = (a + b + c) * 0.5;
+
+     // median to (p1, p2) vector
+     float h = 2.0 / c * sqrt( p * ( p - a) * ( p - b) * ( p - c));
+
+     return mix(1.0, 0.0, smoothstep(0.5 * thick, 1.5 * thick, h));
+   }
+
+   void main() {
+
+       vec2 st = gl_FragCoord.xy/u_resolution.xy;
+       vec2 center = vec2(0.5);
+
+       vec3 color = vec3(0.0);
+
+       color = mix(color, u_color_border, circle(st, center, 0.9, 0.03));
+
+       float hour = u_time_hms.x;
+       float minute = u_time_hms.y;
+       float sec = u_time_hms.z;
+
+       vec2 hourPos = tickPos(hour, 12.0, 0.25);
+       vec2 minPos = tickPos(minute, 60.0, 0.38);
+       vec2 secPos = tickPos(sec, 60.0, 0.41);
+
+
+       color = mix(color, u_color_h, drawLine(st, center, center - hourPos, 0.01));
+       color = mix(color, u_color_m, drawLine(st, center, center - minPos, 0.005));
+       color = mix(color, u_color_s, drawLine(st, center, center - secPos, 0.003));
+
+       gl_FragColor = vec4(color,1.0);
+   }
 </script>
-		
+
 		<script src="twgl.js"></script>
-	
+
 		<script type="text/javascript">
 			"use strict";
-			
+
 			var gl = twgl.getWebGLContext(document.getElementById("glscreen"));
 			var programInfo = twgl.createProgramInfo(gl, ["vs", "fs"]);
 
@@ -121,13 +113,33 @@ void main() {
 				position: [-1, -1, 0, 1, -1, 0, -1, 1, 0, -1, 1, 0, 1, -1, 0, 1, 1, 0],
 			};
 			var bufferInfo = twgl.createBufferInfoFromArrays(gl, arrays);
+         var colHour = [1, 1, 1];
+         var colMinute = [0.8, 0.8, 0.8];
+         var colSecond = [0.5, 0, 0];
+         var colBorder = [0.6, 0.6, 0.6];
+
 
 			function render(time) {
 				twgl.resizeCanvasToDisplaySize(gl.canvas);
 				gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
+
+            // Set up time
+            var time = new Date(Date.now());
+            var hh = time.getHours();
+            var mm = time.getMinutes();
+            var ss = time.getSeconds();
+
+
+            // Color values
+
+
 				var uniforms = {
-					u_time: time * 0.001,
+               u_time_hms: [hh, mm, ss],
+               u_color_h: colHour,
+               u_color_m: colMinute,
+               u_color_s: colSecond,
+               u_color_border: colBorder,
 					u_resolution: [gl.canvas.width, gl.canvas.height],
 				};
 
