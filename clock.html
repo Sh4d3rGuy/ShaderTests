@@ -82,7 +82,10 @@
 
        vec3 color = vec3(0.0);
 
-       color = mix(color, u_color_border, circle(st, center, 0.9, 0.03));
+       float clockRadius = 0.9;
+       float clockBorder = 0.03;
+
+       color = mix(color, u_color_border, circle(st, center, clockRadius, clockBorder));
 
        float hour = u_time_hms.x;
        float minute = u_time_hms.y;
@@ -97,7 +100,8 @@
        color = mix(color, u_color_m, drawLine(st, center, center - minPos, 0.005));
        color = mix(color, u_color_s, drawLine(st, center, center - secPos, 0.003));
 
-       gl_FragColor = vec4(color,1.0);
+       float alpha = abs(1.0 - circle( st, center, (clockRadius + clockBorder) * 1.75, (clockRadius + clockBorder) * 1.5 ));
+       gl_FragColor = vec4( color, alpha );
    }
 </script>
 
@@ -113,10 +117,10 @@
 				position: [-1, -1, 0, 1, -1, 0, -1, 1, 0, -1, 1, 0, 1, -1, 0, 1, 1, 0],
 			};
 			var bufferInfo = twgl.createBufferInfoFromArrays(gl, arrays);
-         var colHour = [1, 1, 1];
-         var colMinute = [0.8, 0.8, 0.8];
-         var colSecond = [0.5, 0, 0];
-         var colBorder = [0.6, 0.6, 0.6];
+         		var colHour = [1, 1, 1];
+         		var colMinute = [0.8, 0.8, 0.8];
+         		var colSecond = [0.5, 0, 0];
+         		var colBorder = [0.6, 0.6, 0.6];
 
 
 			function render(time) {
@@ -124,22 +128,22 @@
 				gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
 
-            // Set up time
-            var time = new Date(Date.now());
-            var hh = time.getHours();
-            var mm = time.getMinutes();
-            var ss = time.getSeconds();
+            			// Set up time
+            			var time = new Date(Date.now());
+            			var hh = time.getHours();
+            			var mm = time.getMinutes();
+            			var ss = time.getSeconds();
 
 
-            // Color values
+            			// Color values
 
 
 				var uniforms = {
-               u_time_hms: [hh, mm, ss],
-               u_color_h: colHour,
-               u_color_m: colMinute,
-               u_color_s: colSecond,
-               u_color_border: colBorder,
+               				u_time_hms: [hh, mm, ss],
+               				u_color_h: colHour,
+               				u_color_m: colMinute,
+               				u_color_s: colSecond,
+               				u_color_border: colBorder,
 					u_resolution: [gl.canvas.width, gl.canvas.height],
 				};
 
